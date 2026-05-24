@@ -2,6 +2,67 @@
 
 终端用户走 BRAT 一键安装(见 README.md),不需要看这个。
 
+---
+
+## 🚀 懒人速查(发新版就看这一段)
+
+**第一步 · 走到这个目录**(发版必须在这个目录跑,别跑错):
+
+```powershell
+cd C:\Users\刘洋\Desktop\笔记拾荒者\plugin
+```
+
+**第二步 · 改版本号**
+
+打开 `manifest.json`,把 `"version": "0.3.0"` 改成新版本(比如 `"0.4.0"`)。
+
+**第三步 · 提交代码改动**
+
+```powershell
+git add -A
+git commit -m "v0.4.0: <一句话讲改了啥>"
+git push
+```
+
+⚠ `git commit` 如果报 "Please tell me who you are",用下面这条带身份的:
+```powershell
+git -c user.email="BenitaCashyin@salesperson.net" -c user.name="刘洋" commit -m "v0.4.0: ..."
+```
+
+**第四步 · 一键发版**(就一条,复制粘贴整行)
+
+```bash
+PATH="/c/Program Files/GitHub CLI:$PATH" GIT_AUTHOR_NAME="刘洋" GIT_AUTHOR_EMAIL="BenitaCashyin@salesperson.net" GIT_COMMITTER_NAME="刘洋" GIT_COMMITTER_EMAIL="BenitaCashyin@salesperson.net" npm run release
+```
+
+⚠ 这条**必须在 bash 里跑**(Claude Code 默认 bash;Git Bash 也行),PowerShell 不认 `PATH=... cmd` 这种内联环境变量语法。
+
+**这条长命令为什么这么长?**
+- `PATH="/c/Program Files/GitHub CLI:$PATH"`:gh CLI 没装到系统 PATH 里(winget 装的程序,新 shell 才能识别),临时塞进 PATH
+- `GIT_AUTHOR_*` / `GIT_COMMITTER_*`:这个 repo 没设 git user(为了不动你的全局 git config),发版脚本里的 `git tag` 需要
+
+**发版完事会输出**:
+- `✓ 发版完成:v0.4.0`
+- Release URL:`https://github.com/fanxing588-ux/obsidian-biji-huangzhe/releases/tag/0.4.0`
+
+之后用户那边 BRAT 会在下一次检查更新时(默认 1 小时)拉到新版,自动提示更新。
+
+---
+
+## 仓库基本信息
+
+| 项 | 值 |
+|---|---|
+| GitHub | https://github.com/fanxing588-ux/obsidian-biji-huangzhe |
+| 本地路径 | `C:\Users\刘洋\Desktop\笔记拾荒者\plugin\` |
+| gh CLI 路径 | `C:\Program Files\GitHub CLI\gh.exe` |
+| BRAT 安装路径 | `fanxing588-ux/obsidian-biji-huangzhe` |
+| 当前版本 | 见 `manifest.json` 的 `version` 字段 |
+
+---
+
+## 历史背景(下面是首次发版的完整步骤,以后不用看)
+
 ## 首次:把仓库放上 GitHub
 
 ```powershell
