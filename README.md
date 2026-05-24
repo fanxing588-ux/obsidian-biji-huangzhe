@@ -78,16 +78,58 @@ Obsidian 里改完代码按 `Ctrl+R` 重载即可。
 
 ## 配置
 
-启用后,**设置 → 笔记拾荒者**,填:
+启用插件后,**第一件事是选 embedding 来源** —— 两个路径,先想清楚你属于哪种。
 
-| 字段 | 默认值 | 说明 |
+### 路径 A · Ollama 本地(👈 推荐先用这个)
+
+**适合**:第一次试 / 不想花钱 / 笔记不想离开本机。**5 分钟跑通,免费,零 API key,完全离线**。
+
+1. 装 Ollama:https://ollama.com,按页面提示下载装好
+2. 装完命令行跑一句(拉个中文 embedding 模型,约 1.2 GB):
+   ```bash
+   ollama pull bge-m3
+   ```
+3. Obsidian → 设置 → 笔记拾荒者,按下表填:
+
+   | 字段 | 值 |
+   |---|---|
+   | API Endpoint | `http://localhost:11434/v1` |
+   | Model | `bge-m3` |
+   | Dimensions | `1024` |
+   | API Key | 随便填一个,比如 `ollama`(本地不校验,但插件要求非空) |
+
+4. 滚到底部,点「**开始索引**」
+
+### 路径 B · 阿里云百炼 API(召回质量更精准)
+
+**适合**:愿意配 API key / 写作内容专业度高,对细微语义敏感 / 想要"满血"体验。
+
+新用户有 **100 万 token 免费额度**(够日常用很久);之后充值 10 元也够用半年级别。
+
+1. 去阿里云百炼控制台 [bailian.console.aliyun.com](https://bailian.console.aliyun.com) 注册,创建 API key(详细图文见 `阿里API接入指南.html`)
+2. Obsidian → 设置 → 笔记拾荒者,按下表填:
+
+   | 字段 | 值 |
+   |---|---|
+   | API Endpoint | `https://dashscope.aliyuncs.com/compatible-mode/v1` |
+   | Model | `text-embedding-v4` |
+   | Dimensions | `2048` |
+   | API Key | 刚创建的 `sk-...` |
+
+3. 滚到底部,点「**开始索引**」
+
+### 两条路质量差多少?
+
+| 路径 | 召回质量(粗略) | 上手成本 |
 |---|---|---|
-| API Endpoint | `https://dashscope.aliyuncs.com/compatible-mode/v1` | 阿里云百炼(dashscope)。也支持任何 OpenAI 兼容的 endpoint |
-| Model | `text-embedding-v4` | dashscope 当前最强中文 embedding |
-| Dimensions | `2048` | v4 最高维度,质量比默认 1024 强一档 |
-| API Key | (填你自己的) | 在阿里云百炼控制台创建 |
+| A · Ollama `bge-m3`(开源 SOTA) | ~75-80 分 | 5 分钟 |
+| B · 阿里 `text-embedding-v4`(闭源 SOTA) | ~90 分 | 注册 + 充值,15-30 分钟 |
 
-填完后,**滚到底部,点「开始索引」**,会遍历 vault 里所有 .md 笔记,切块,批量算 embedding。100 篇笔记大约几分钟。
+**80% 的召回场景两者几乎一样**,B 在生僻话题、细微语义、隐喻判断上更稳。建议先 A 跑通体验,觉得不够再升 B(切换只需要改 4 个字段然后**重新索引一次** —— 因为维度变了,旧 embedding 缓存失效)。
+
+---
+
+**「开始索引」会做什么**:遍历 vault 里所有 .md 笔记,切块,批量算 embedding。100 篇笔记大约几分钟(A 路径会快一点,因为不走网络)。
 
 索引完成后,任意打开一个笔记开始写,**右侧自动浮现卡片**(如果右侧面板没打开,Ctrl+P 搜「打开拾荒面板」)。
 
@@ -184,21 +226,9 @@ export BIJI_API_KEY="sk-..."
 
 ### 方案 C:完全离线 — Ollama 本地 embedding
 
-如果你不想把笔记内容传到任何云端 API,可以用 Ollama 跑本地 embedding:
+详见上面的 [**配置 → 路径 A · Ollama 本地**](#路径-a--ollama-本地--推荐先用这个) —— Ollama 路径笔记内容完全不出本机,是隐私敏感场景的天然解。
 
-1. 装 Ollama:https://ollama.com
-2. 拉一个中文 embedding 模型:
-   ```bash
-   ollama pull bge-m3
-   ```
-3. Settings → 笔记拾荒者 :
-   - API Endpoint: `http://localhost:11434/v1`
-   - Model: `bge-m3`
-   - Dimensions: `1024`(bge-m3 默认维度)
-   - API Key: 任意非空字符串(Ollama 不校验,但插件 isReady 要求 key 非空)
-4. **重新索引** —— 模型换了维度就变,旧 embedding 缓存全部失效
-
-LLM 二段式也可以走 Ollama:Chat Model 填 `qwen2.5:7b` 或 `glm4:9b` 之类的本地模型(先 `ollama pull` 拉下来)。整套链路完全离线,只是质量会比云端低一档。
+如果想连 LLM 二段式也走 Ollama,Chat Model 填 `qwen2.5:7b` 或 `glm4:9b` 之类的本地模型(先 `ollama pull` 拉下来),整套链路完全离线,只是质量会比云端低一档。
 
 ## LLM 二段式:用 Claude 还是 qwen
 
