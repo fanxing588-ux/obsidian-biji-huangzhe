@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>笔记拾荒者 · 3 步上手</title>
+<style>
+  :root {
+    --text: #1d1d1f;
+    --dim: #6e6e73;
+    --accent: #b8843a;
+    --bg-soft: #fdf7eb;
+    --code-bg: #f5f5f7;
+    --border: #e5e5ea;
+  }
+  * { box-sizing: border-box; }
+  html { font-size: 16px; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    color: var(--text);
+    line-height: 1.75;
+    max-width: 640px;
+    margin: 56px auto;
+    padding: 0 32px;
+    background: #fff;
+  }
+  h1 {
+    font-size: 2.2rem;
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+  .lead {
+    color: var(--dim);
+    font-size: 1.05rem;
+    margin: 8px 0 56px;
+    line-height: 1.6;
+  }
+  h2 {
+    font-size: 1.4rem;
+    margin: 56px 0 16px;
+    letter-spacing: -0.005em;
+  }
+  .step-num {
+    display: inline-block;
+    width: 28px; height: 28px;
+    line-height: 28px;
+    text-align: center;
+    background: var(--accent);
+    color: #fff;
+    border-radius: 50%;
+    font-size: 0.9rem;
+    margin-right: 10px;
+    vertical-align: 2px;
+  }
+  p { margin: 0.7em 0; }
+  ol { padding-left: 1.4em; }
+  li { margin: 0.4em 0; }
+  code {
+    font-family: "SF Mono", Consolas, monospace;
+    background: var(--code-bg);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.92em;
+    color: #c0392b;
+  }
+  pre {
+    background: var(--code-bg);
+    padding: 14px 18px;
+    border-radius: 6px;
+    margin: 16px 0;
+    overflow-x: auto;
+    font-size: 0.92em;
+  }
+  pre code { background: none; padding: 0; color: var(--text); }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 16px 0;
+    font-size: 0.95em;
+  }
+  th, td {
+    border-bottom: 1px solid var(--border);
+    padding: 10px 8px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th {
+    background: var(--code-bg);
+    font-weight: 600;
+    border-top: 1px solid var(--border);
+  }
+  td:first-child { white-space: nowrap; color: var(--dim); padding-right: 16px; }
+  td code { font-size: 0.88em; }
+  .tip {
+    background: var(--bg-soft);
+    border-left: 3px solid var(--accent);
+    padding: 12px 16px;
+    margin: 18px 0;
+    border-radius: 4px;
+    font-size: 0.95em;
+    color: var(--text);
+  }
+  a { color: var(--accent); }
+  hr {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 56px 0;
+  }
+  .done {
+    text-align: center;
+    font-size: 1.3rem;
+    color: var(--accent);
+    font-weight: 600;
+    margin: 8px 0 20px;
+  }
+  .footer {
+    color: var(--dim);
+    font-size: 0.85em;
+    text-align: center;
+    margin-top: 56px;
+  }
+
+  @media print {
+    body { margin: 0; padding: 24px 32px; max-width: none; font-size: 11pt; }
+    h1 { font-size: 22pt; }
+    h2 { page-break-after: avoid; }
+    pre, table, .tip { page-break-inside: avoid; }
+    a { color: var(--text); }
+  }
+</style>
+</head>
+<body>
+
+<h1>笔记拾荒者</h1>
+<div class="lead">
+写笔记时,自动从你过去写过的笔记里捞相关的,浮现在右边。<br>
+3 步上手,大概 10 分钟。
+</div>
+
+<h2><span class="step-num">1</span>装插件</h2>
+
+<p>把作者给你的 <code>笔记拾荒者-v0.1.zip</code> <strong>解压</strong>,会得到一个 <code>biji-huangzhe</code> 文件夹和这份说明。</p>
+
+<p>打开 Obsidian → 左下角齿轮(<strong>设置</strong>)→ 左栏 <strong>第三方插件</strong>:</p>
+
+<ol>
+  <li>把"安全模式"<strong>关掉</strong>(右侧 toggle)</li>
+  <li>下方"已安装的插件" 标题右边有个文件夹小图标 📁 → 点它,会弹出 <code>.obsidian/plugins/</code> 这个目录</li>
+  <li>把刚才解压出的 <code>biji-huangzhe</code> 文件夹整个 <strong>拖进去</strong></li>
+  <li>回到 Obsidian → 设置 → 第三方插件 → 右下角点 <strong>重新载入</strong>(或者关掉 Obsidian 再开)</li>
+  <li>在"已安装的插件"列表里找到 <strong>笔记拾荒者</strong> → 把它右边的 toggle 打开</li>
+</ol>
+
+<div class="tip">
+<strong>如果你看不到那个文件夹小图标</strong>:手动找到 vault 目录(你存笔记的文件夹),进去找到隐藏的 <code>.obsidian/plugins/</code> 文件夹,没有就自己建一个,然后把 <code>biji-huangzhe</code> 拖进去。
+</div>
+
+<h2><span class="step-num">2</span>拿一个免费的 API Key</h2>
+
+<ol>
+  <li>打开 <a href="https://bailian.console.aliyun.com/">https://bailian.console.aliyun.com/</a></li>
+  <li>用支付宝 / 阿里云账号登录,做一下实名</li>
+  <li>右上角头像 → <strong>API-KEY</strong> → <strong>创建</strong> → 复制 <code>sk-xxxxxx</code></li>
+</ol>
+
+<div class="tip">
+<strong>免费的</strong>,新用户送 100 万 token,够用半年到一年。不绑卡也能用。
+</div>
+
+<h2><span class="step-num">3</span>填进插件 + 索引</h2>
+
+<p>回到 Obsidian → <strong>设置</strong> → <strong>笔记拾荒者</strong>,顶部填 4 个字段:</p>
+
+<table>
+<tr><td>API Endpoint</td><td><code>https://dashscope.aliyuncs.com/compatible-mode/v1</code></td></tr>
+<tr><td>Model</td><td><code>text-embedding-v4</code></td></tr>
+<tr><td>Dimensions</td><td><code>2048</code></td></tr>
+<tr><td>API Key</td><td>刚才那个 <code>sk-xxxxxx</code></td></tr>
+</table>
+
+<p>填完往下拉,点 <strong>开始索引</strong>。等几分钟跑完(几百篇笔记 5 分钟内)。</p>
+
+<hr>
+
+<div class="done">✓ 完事</div>
+
+<p>随便打开一个笔记开始写,<strong>停 2 秒</strong>,右边自动浮现卡片。卡片底部 <strong>看原文 →</strong> 一点就跳到原段落。</p>
+
+<p>不想被打扰:<code>Ctrl+P</code> 搜 <strong>切换专注模式</strong>,一键暂停 / 恢复。</p>
+
+<div class="footer">
+有问题随时找作者,贴一下 Obsidian 控制台(<code>Ctrl+Shift+I</code> → Console)截图就行。
+</div>
+
+</body>
+</html>

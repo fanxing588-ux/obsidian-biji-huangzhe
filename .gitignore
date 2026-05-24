@@ -1,0 +1,10 @@
+node_modules/
+main.js
+*.js.map
+data.json
+embeddings.bin
+_backups/
+*.backup-*
+*.zip
+.DS_Store
+.vscode/

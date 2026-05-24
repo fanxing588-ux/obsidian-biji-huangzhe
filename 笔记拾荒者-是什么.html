@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>笔记拾荒者 · 这是什么</title>
+<style>
+  * { box-sizing: border-box; }
+  html { font-size: 16px; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    color: #1d1d1f;
+    line-height: 1.75;
+    max-width: 580px;
+    margin: 64px auto;
+    padding: 0 32px;
+    background: #fff;
+  }
+  h1 {
+    font-size: 2.4rem;
+    margin: 0 0 14px;
+    letter-spacing: -0.015em;
+  }
+  .tagline {
+    font-size: 1.15rem;
+    color: #1d1d1f;
+    line-height: 1.55;
+    margin: 0 0 36px;
+    padding-bottom: 36px;
+    border-bottom: 1px solid #e5e5ea;
+  }
+  .tagline strong { color: #b8843a; }
+  p { margin: 1em 0; }
+  h2 {
+    font-size: 1.15rem;
+    margin: 40px 0 16px;
+    color: #6e6e73;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+  .cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin: 8px 0;
+  }
+  .card {
+    border-radius: 8px;
+    padding: 14px 16px;
+    background: #fafafa;
+    border-left: 3px solid #ccc;
+  }
+  .card.similar { border-left-color: #6b8fc5; }
+  .card.opposite { border-left-color: #e0826b; }
+  .card.case { border-left-color: #7aa874; }
+  .card.quote { border-left-color: #d4a574; }
+  .card .type {
+    font-weight: 600;
+    margin-bottom: 4px;
+    font-size: 0.95rem;
+  }
+  .card .desc {
+    color: #6e6e73;
+    font-size: 0.88rem;
+    line-height: 1.55;
+  }
+  .neg {
+    color: #6e6e73;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    background: #fafafa;
+    border-radius: 8px;
+    padding: 14px 20px;
+    margin: 20px 0;
+  }
+  .neg strong { color: #1d1d1f; }
+  .footer {
+    text-align: center;
+    margin-top: 56px;
+    color: #6e6e73;
+    font-size: 0.9rem;
+  }
+  .footer code {
+    background: #f5f5f7;
+    padding: 2px 8px;
+    border-radius: 4px;
+    color: #c0392b;
+    font-family: "SF Mono", Consolas, monospace;
+    font-size: 0.88em;
+  }
+
+  @media print {
+    body { margin: 0; padding: 28px 36px; max-width: none; }
+    h1 { font-size: 26pt; }
+  }
+</style>
+</head>
+<body>
+
+<h1>笔记拾荒者</h1>
+<p class="tagline">
+写作时,从你过去写过的笔记里<strong>自动挖出相关的</strong>,浮在右边。<br>
+不用搜索、不用整理、不用提示 AI —— 你只管写。
+</p>
+
+<p>
+你写一段新东西,它替你想:"哎,这个观点你三个月前不是也写过吗?那次的角度反而跟你现在相反——要不要参考一下?"
+</p>
+
+<p>
+旧笔记本来都死在硬盘里,翻不到也想不起来。这个插件让它们在你需要的瞬间<strong>主动浮出来</strong>。
+</p>
+
+<h2>四种召回</h2>
+
+<div class="cards">
+  <div class="card similar">
+    <div class="type">相似</div>
+    <div class="desc">你以前写过类似角度,可以补素材</div>
+  </div>
+  <div class="card opposite">
+    <div class="type">反向</div>
+    <div class="desc">你以前的观点跟现在相反,制造冲突</div>
+  </div>
+  <div class="card case">
+    <div class="type">案例</div>
+    <div class="desc">某条笔记里有具体人/事/数字,可作证据</div>
+  </div>
+  <div class="card quote">
+    <div class="type">金句</div>
+    <div class="desc">你写过一句凝练的判断,适合做标题</div>
+  </div>
+</div>
+
+<p>
+每张卡片都告诉你<strong>"为什么是这条"</strong>—— 不是冷冰冰的主题相似度,而是说清楚它和你正在写的具体连接。
+</p>
+
+<h2>适合 / 不适合</h2>
+
+<div class="neg">
+<strong>适合</strong>:Obsidian 用户,vault 里有 50+ 篇笔记,想写新东西时不浪费过去写过的。<br><br>
+<strong>不适合</strong>:把它当全能 AI 助手 / 笔记整理工具 / 替你写文章的人。它只做一件事 —— 写的时候,把你过去的自己请回来旁听。
+</div>
+
+<div class="footer">
+开装看 <code>阿里API接入指南.html</code> · 10 分钟搞定
+</div>
+
+</body>
+</html>

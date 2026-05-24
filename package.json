@@ -1,0 +1,22 @@
+{
+  "name": "biji-huangzhe",
+  "version": "0.3.0",
+  "description": "笔记拾荒者 — Obsidian plugin",
+  "main": "main.js",
+  "scripts": {
+    "dev": "node esbuild.config.mjs",
+    "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
+    "release": "node tools/release.mjs"
+  },
+  "keywords": ["obsidian-plugin", "embedding", "writing"],
+  "author": "刘洋",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "builtin-modules": "^4.0.0",
+    "esbuild": "^0.21.5",
+    "obsidian": "^1.5.7",
+    "tslib": "^2.6.0",
+    "typescript": "^5.4.5"
+  }
+}

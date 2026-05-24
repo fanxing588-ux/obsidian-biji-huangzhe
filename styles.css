@@ -1,0 +1,895 @@
+/* 笔记拾荒者 — 精致动画版
+   设计原则(Jobs 审美):
+   - 每个动画都为内容服务,不为炫技
+   - 自然加速曲线 cubic-bezier(0.22, 1, 0.36, 1),不机械
+   - 默认隐藏次要元素;hover 时优雅浮现而非突然出现
+   - 反馈即时可见;每次交互都有 visible response
+   - 焦点永远在内容上(snippet 是主角)
+*/
+
+.biji-root {
+  padding: 16px 16px 20px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  position: relative; /* refining indicator absolute 定位的锚点 */
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+/* ===================================================================
+   Refining indicator —— refine 期间浮在面板中央的克制提示
+   "AI · 召回中" + 三点 bouncing,提示"有事在发生",不让用户面对空白
+   =================================================================== */
+.biji-refining-indicator {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  z-index: 20;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 360ms cubic-bezier(0.22, 1, 0.36, 1) 120ms;
+}
+.biji-refining-indicator.is-active { opacity: 0.95; }
+.biji-refining-label {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.22em;       /* 中文不能太大字距,否则字符散开 */
+  color: var(--text-muted);
+  text-transform: uppercase;     /* 只对英文 AI 生效,中文不变 */
+  white-space: nowrap;
+  /* 微妙呼吸:文字本身脉冲一下,让"思考感"更强 */
+  animation: bijiRefineBreathe 2.6s ease-in-out infinite;
+}
+.biji-refining-dots {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.biji-refining-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--color-yellow, #d4a574);
+  opacity: 0.35;
+  animation: bijiDotBounce 1.4s ease-in-out infinite;
+}
+.biji-refining-dot:nth-child(2) { animation-delay: 0.18s; }
+.biji-refining-dot:nth-child(3) { animation-delay: 0.36s; }
+@keyframes bijiDotBounce {
+  0%, 80%, 100% { opacity: 0.35; transform: translateY(0) scale(0.85); }
+  40%           { opacity: 1;    transform: translateY(-4px) scale(1.05); }
+}
+@keyframes bijiRefineBreathe {
+  0%, 100% { opacity: 0.62; letter-spacing: 0.22em; }
+  50%      { opacity: 1;    letter-spacing: 0.26em; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .biji-refining-dot,
+  .biji-refining-label { animation: none !important; }
+  .biji-stack { transition: none !important; }
+}
+
+/* ===== 头部:标题 + 状态 ===== */
+.biji-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 2px 4px 14px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+.biji-title {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+}
+.biji-status {
+  flex: 1;
+  font-size: 10.5px;
+  color: var(--text-faint);
+  text-align: right;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+  transition: opacity 0.2s, color 0.25s;
+}
+
+/* ===== 卡片栈:flex + gap ===== */
+/* 卡片堆叠的包裹层 —— 给 refining indicator 一个 cardStack-scoped 的定位坐标系
+   (直接挂在 .biji-root 上会被 head/searchBar/refineBar 的高度推偏) */
+.biji-stack-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  min-height: 0;
+}
+.biji-stack {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-right: 4px;
+  /* refine 期间整体淡化的过渡 */
+  transition: opacity 320ms cubic-bezier(0.22, 1, 0.36, 1),
+              filter 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+/* refine 启动 → 旧卡片立即模糊+淡出+失去交互,等新结果回来。
+   核心思路:用户决定"演化"那一刻,旧信息立即降权,避免视觉错配焦虑 */
+.biji-stack.is-refining {
+  opacity: 0.15;
+  filter: blur(3px) saturate(0.75);
+  pointer-events: none;
+  user-select: none;
+}
+.biji-stack::-webkit-scrollbar { width: 4px; }
+.biji-stack::-webkit-scrollbar-thumb {
+  background: var(--background-modifier-border);
+  border-radius: 2px;
+  transition: background 0.2s;
+}
+.biji-stack:hover::-webkit-scrollbar-thumb {
+  background: var(--background-modifier-border-hover, var(--text-faint));
+}
+
+/* ===== 空状态:留白 + 羽毛缓慢漂浮 + 等候感文案 ===== */
+.biji-empty {
+  padding: 80px 16px;
+  text-align: center;
+  color: var(--text-faint);
+  font-size: 12.5px;
+  line-height: 2.0;
+  letter-spacing: 0.04em;
+  animation: bijiFade 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.biji-empty::before {
+  content: '🪶';
+  display: block;
+  font-size: 28px;
+  margin-bottom: 22px;
+  opacity: 0.4;
+  filter: grayscale(0.3);
+  animation: bijiFloat 5.5s ease-in-out infinite;
+  transform-origin: 50% 80%;
+}
+@keyframes bijiFloat {
+  0%, 100% { transform: translateY(0) rotate(-3deg); }
+  50%      { transform: translateY(-6px) rotate(3deg); }
+}
+@keyframes bijiFade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ===== 卡片:精致入场,stagger 错峰 ===== */
+.biji-card {
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-left: 2px solid var(--color-accent);
+  border-radius: 7px;
+  padding: 15px 16px 13px;
+  position: relative;
+  transition:
+    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.25s,
+    border-left-color 0.25s,
+    background-color 0.25s;
+  animation: bijiCardIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: transform;
+}
+
+/* stagger:每张卡片入场延迟 ~70ms,营造"一张一张飘进来"的节奏 */
+.biji-stack > .biji-card:nth-child(1) { animation-delay: 0ms; }
+.biji-stack > .biji-card:nth-child(2) { animation-delay: 70ms; }
+.biji-stack > .biji-card:nth-child(3) { animation-delay: 140ms; }
+.biji-stack > .biji-card:nth-child(4) { animation-delay: 210ms; }
+.biji-stack > .biji-card:nth-child(5) { animation-delay: 280ms; }
+.biji-stack > .biji-card:nth-child(6) { animation-delay: 350ms; }
+.biji-stack > .biji-card:nth-child(7) { animation-delay: 420ms; }
+.biji-stack > .biji-card:nth-child(8) { animation-delay: 490ms; }
+.biji-stack > .biji-card:nth-child(n+9) { animation-delay: 540ms; }
+
+@keyframes bijiCardIn {
+  from { opacity: 0; transform: translateY(10px) scale(0.985); }
+  to   { opacity: 1; transform: translateY(0)     scale(1); }
+}
+
+/* hover:上浮 + 阴影加深 + 类型色条微亮 */
+.biji-card:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 14px 36px rgba(0, 0, 0, 0.22),
+    0  2px  6px rgba(0, 0, 0, 0.10);
+}
+
+/* 类型色条 */
+.biji-card[data-type="similar"]  { border-left-color: #6b8fc5; }
+.biji-card[data-type="opposite"] { border-left-color: #e0826b; }
+.biji-card[data-type="case"]     { border-left-color: #7aa874; }
+.biji-card[data-type="quote"]    { border-left-color: #d4a574; }
+
+/* hover 时色条更鲜艳(微光感) */
+.biji-card[data-type="similar"]:hover  { border-left-color: #8eb0e0; }
+.biji-card[data-type="opposite"]:hover { border-left-color: #f09680; }
+.biji-card[data-type="case"]:hover     { border-left-color: #92c08c; }
+.biji-card[data-type="quote"]:hover    { border-left-color: #e8b988; }
+
+/* 卡片关闭动画:slide-right + fade,260ms 后 remove */
+.biji-card.biji-dismissing {
+  animation: bijiCardOut 0.28s cubic-bezier(0.4, 0, 0.6, 1) forwards;
+  pointer-events: none;
+}
+@keyframes bijiCardOut {
+  to { opacity: 0; transform: translateX(48px); }
+}
+
+/* ===== 卡头:dot + type + sim + close,极小,几乎隐形 ===== */
+.biji-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 11px;
+  font-size: 10px;
+  color: var(--text-faint);
+  height: 14px;
+  line-height: 14px;
+}
+.biji-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  flex-shrink: 0;
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.biji-card:hover .biji-dot {
+  transform: scale(1.3);
+}
+.biji-card[data-type="similar"]  .biji-dot { background: #6b8fc5; }
+.biji-card[data-type="opposite"] .biji-dot { background: #e0826b; }
+.biji-card[data-type="case"]     .biji-dot { background: #7aa874; }
+.biji-card[data-type="quote"]    .biji-dot { background: #d4a574; }
+
+.biji-type {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--text-faint);
+  transition: color 0.2s;
+}
+.biji-card:hover .biji-type { color: var(--text-muted); }
+
+.biji-sim {
+  margin-left: auto;
+  font-size: 10px;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+/* 关闭 ×:hover 时旋转 90° 给"清扫一下"的小动感 */
+.biji-close {
+  cursor: pointer;
+  color: var(--text-faint);
+  font-size: 16px;
+  line-height: 1;
+  padding: 0 4px 0 6px;
+  user-select: none;
+  opacity: 0.55;
+  transition:
+    color 0.18s,
+    opacity 0.18s,
+    transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.biji-close:hover {
+  color: var(--text-normal);
+  opacity: 1;
+  transform: rotate(90deg);
+}
+.biji-close:active { transform: rotate(90deg) scale(0.85); }
+
+/* ===== Snippet:主角,字号大,留白多 ===== */
+.biji-snippet {
+  font-size: 14px;
+  line-height: 1.72;
+  color: var(--text-normal);
+  margin-bottom: 11px;
+  word-break: break-word;
+  letter-spacing: 0.012em;
+  font-weight: 400;
+}
+.biji-snippet mark {
+  background: rgba(212, 165, 116, 0.16);
+  color: #d4a574;
+  padding: 1px 3px;
+  border-radius: 3px;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+.biji-card:hover .biji-snippet mark {
+  background: rgba(212, 165, 116, 0.24);
+}
+
+/* ===== Why:辅助信息,斜体,淡灰 ===== */
+.biji-why {
+  font-size: 11.5px;
+  line-height: 1.65;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+  font-style: italic;
+  letter-spacing: 0.01em;
+}
+.biji-why mark {
+  background: transparent;
+  color: #d4a574;
+  padding: 0;
+  font-style: normal;
+}
+
+/* ===== Foot:来源 + 看原文 ===== */
+.biji-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 10.5px;
+  color: var(--text-faint);
+  letter-spacing: 0.02em;
+}
+.biji-src {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-right: 12px;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+.biji-card:hover .biji-src { opacity: 0.85; }
+
+.biji-open {
+  color: var(--color-accent);
+  cursor: pointer;
+  flex-shrink: 0;
+  opacity: 0.75;
+  font-size: 10.5px;
+  letter-spacing: 0.03em;
+  transition:
+    opacity 0.18s,
+    transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.biji-open:hover {
+  opacity: 1;
+  transform: translateX(3px); /* 箭头向前一点点,提示"跳过去" */
+}
+
+/* ===== 按钮:hover 卡片才浮现 + 视觉权重分级 + 弹性反馈 ===== */
+.biji-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto; /* 有用/没用等宽,别再提醒收窄 */
+  gap: 6px;
+  margin-top: 0;
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition:
+    max-height 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.22s ease-out,
+    margin-top 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.biji-card:hover .biji-actions {
+  margin-top: 11px;
+  max-height: 32px;
+  opacity: 1;
+}
+
+.biji-btn {
+  font-size: 10.5px;
+  padding: 5px 10px;
+  background: transparent;
+  border: 1px solid var(--background-modifier-border);
+  color: var(--text-faint);
+  border-radius: 4px;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  font-family: inherit;
+  transition: all 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.biji-btn:hover {
+  color: var(--text-normal);
+  border-color: var(--text-muted);
+  background: var(--background-modifier-hover);
+  transform: translateY(-1px);
+}
+.biji-btn:active {
+  transform: translateY(0) scale(0.96);
+  transition: transform 0.08s;
+}
+
+/* 有用 / 没用 各自的 hover 强色 */
+.biji-useful:hover  { color: #7aa874; border-color: #7aa874; }
+.biji-useless:hover { color: #e0826b; border-color: #e0826b; }
+
+/* 别再提醒:视觉权重最低 —— 无边框、淡灰、字号更小 */
+.biji-actions > .biji-btn:nth-child(3) {
+  padding: 5px 9px;
+  font-size: 9.5px;
+  color: var(--text-faint);
+  border-color: transparent;
+  opacity: 0.7;
+  letter-spacing: 0.06em;
+}
+.biji-actions > .biji-btn:nth-child(3):hover {
+  color: var(--text-muted);
+  border-color: transparent;
+  background: var(--background-modifier-hover);
+  opacity: 1;
+}
+
+/* 已标记状态:填充色 + inset shadow,告诉用户"我刚做了什么" */
+.biji-btn.biji-marked {
+  cursor: default;
+  border-color: transparent;
+  transform: none !important;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+.biji-btn.biji-marked.biji-useful {
+  color: #ffffff;
+  background: #7aa874;
+}
+.biji-btn.biji-marked.biji-useless {
+  color: #ffffff;
+  background: #e0826b;
+}
+
+/* ===== 跳转后的位置提示:琥珀色细线 + 背景微闪 ===== */
+.cm-line.biji-flash {
+  position: relative;
+  animation: biji-flash-bg 1.8s ease-out;
+}
+.cm-line.biji-flash::before {
+  content: "";
+  position: absolute;
+  left: -14px;
+  top: 4px;
+  bottom: 4px;
+  width: 2px;
+  background: #d4a574;
+  border-radius: 1px;
+  animation: biji-flash-bar 1.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes biji-flash-bar {
+  0%   { opacity: 0; transform: translateX(6px); }
+  15%  { opacity: 1; transform: translateX(0); }
+  70%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes biji-flash-bg {
+  0%   { background-color: transparent; }
+  15%  { background-color: rgba(212, 165, 116, 0.12); }
+  70%  { background-color: rgba(212, 165, 116, 0.08); }
+  100% { background-color: transparent; }
+}
+
+/* Obsidian 编辑器选中颜色改用琥珀色 alpha */
+.workspace-leaf-content[data-type="markdown"] .cm-selectionBackground,
+.workspace-leaf-content[data-type="markdown"] .cm-line ::selection,
+.workspace-leaf-content[data-type="markdown"] ::selection {
+  background-color: rgba(212, 165, 116, 0.22) !important;
+}
+
+/* ========================================================================
+   语义搜索框 —— 头部下方,聚焦时柔光浮现
+   ======================================================================== */
+.biji-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px;
+  margin-bottom: 12px;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  transition:
+    border-color 0.22s,
+    box-shadow 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 0.2s;
+}
+.biji-search-bar:hover {
+  border-color: var(--background-modifier-border-hover, var(--text-faint));
+}
+.biji-search-bar:focus-within {
+  border-color: rgba(212, 165, 116, 0.55);
+  box-shadow:
+    0 0 0 3px rgba(212, 165, 116, 0.12),
+    0 1px 2px rgba(0, 0, 0, 0.04);
+  background: var(--background-primary);
+}
+.biji-search-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: 6px 8px;
+  font-size: 13px;
+  color: var(--text-normal);
+  font-family: inherit;
+  letter-spacing: 0.01em;
+}
+.biji-search-input::placeholder {
+  color: var(--text-faint);
+  font-size: 12.5px;
+  transition: opacity 0.2s;
+}
+.biji-search-bar:focus-within .biji-search-input::placeholder {
+  opacity: 0.6;
+}
+.biji-search-btn,
+.biji-search-clear {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  font-size: 14px;
+  color: var(--text-muted);
+  border-radius: 4px;
+  line-height: 1;
+  transition: all 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.biji-search-btn:hover {
+  color: #d4a574;
+  background: rgba(212, 165, 116, 0.1);
+  transform: scale(1.08);
+}
+.biji-search-btn:active { transform: scale(0.94); }
+.biji-search-clear {
+  font-size: 18px;
+  font-weight: 300;
+  color: var(--text-faint);
+}
+.biji-search-clear:hover {
+  color: var(--text-normal);
+  background: var(--background-modifier-hover);
+  transform: rotate(90deg);
+}
+
+/* ===================================================================
+   v2 (2026-05) — 空状态分情况引导 · 卡片时间小字 · 底栏状态条
+   =================================================================== */
+
+/* 空状态:main 是主文案,hint 是辅助操作引导(更小、更暗) */
+.biji-empty-main {
+  font-size: 13px;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+  line-height: 1.7;
+}
+.biji-empty-hint {
+  margin-top: 14px;
+  font-size: 11px;
+  color: var(--text-faint);
+  letter-spacing: 0.06em;
+  opacity: 0.85;
+  /* 单色 mono 让"引导操作"和主文案视觉分层 */
+  font-family: var(--font-monospace, ui-monospace, SFMono-Regular, Menlo, monospace);
+}
+
+/* 卡片底部时间小字 —— 在 biji-src 和 biji-open 之间,提示"几月前你写过"的拾荒感 */
+.biji-time {
+  flex-shrink: 0;
+  margin: 0 10px;
+  font-size: 10px;
+  color: var(--text-faint);
+  letter-spacing: 0.04em;
+  opacity: 0.55;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.biji-card:hover .biji-time { opacity: 0.85; }
+
+/* Obsidian 底栏 status bar item —— 不开拾荒面板时也能感知状态 */
+.biji-statusbar {
+  cursor: pointer;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  opacity: 0.75;
+  transition: opacity 180ms ease, color 180ms ease;
+}
+.biji-statusbar:hover { opacity: 1; }
+.biji-statusbar[data-kind="warn"]  { color: var(--text-warning, #d49a3c); opacity: 0.85; }
+.biji-statusbar[data-kind="error"] { color: var(--text-error, #d65454); opacity: 1; }
+.biji-statusbar[data-kind="busy"]  { color: var(--color-accent); opacity: 1; }
+.biji-statusbar[data-kind="ok"]    { color: var(--text-faint); }
+
+/* ===================================================================
+   v0.3 — Relevance feedback (锚点钉选 + Rocchio 重召回)
+   =================================================================== */
+
+/* 卡片头部 ⭐ 钉选按钮:默认低调,hover 浮现,pinned 时高亮 */
+.biji-pin {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin-left: 4px;
+  margin-right: 2px;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--text-faint);
+  opacity: 0;
+  transition: opacity 180ms ease, color 180ms ease, transform 180ms ease;
+  user-select: none;
+}
+.biji-card:hover .biji-pin { opacity: 0.6; }
+.biji-pin:hover {
+  opacity: 1 !important;
+  color: var(--color-yellow, #d4a574);
+  transform: scale(1.15);
+}
+.biji-pin.is-pinned {
+  opacity: 1 !important;
+  color: var(--color-yellow, #d4a574);
+  text-shadow: 0 0 8px rgba(212, 165, 116, 0.45);
+}
+
+/* refine bar:顶部一条,只在 pinned > 0 时显示
+   样式呼应"金句"色条,提示"这是你严选过的东西"
+   注意:右侧面板可能很窄,所以容器是 block(纵向堆叠),不是 flex(否则中文会被挤成单字一列) */
+.biji-refine-bar {
+  display: block;
+  padding: 10px 12px;
+  margin: 8px 0 14px;
+  background: linear-gradient(
+    90deg,
+    rgba(212, 165, 116, 0.10),
+    rgba(212, 165, 116, 0.02)
+  );
+  border-left: 2px solid var(--color-yellow, #d4a574);
+  border-radius: 4px;
+  font-size: 11.5px;
+  /* 极窄面板时也不挤压文字 */
+  min-width: 0;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  animation: bijiSlideDown 280ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.biji-refine-bar.is-hidden { display: none; }
+@keyframes bijiSlideDown {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* refine bar 顶行:label 一行,按钮一行 (窄面板自动换行) */
+.biji-refine-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  flex-wrap: wrap;          /* 容不下时按钮自动到下一行 */
+  min-width: 0;
+}
+.biji-refine-label {
+  flex: 1 1 100%;           /* 占满整行 → 按钮换到下一行,不挤压文字 */
+  min-width: 0;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+  font-weight: 500;
+  line-height: 1.5;
+  word-break: break-word;
+}
+.biji-refine-go {
+  flex: 0 0 auto;
+  background: var(--color-yellow, #d4a574);
+  color: #2a1f10;
+  border: none;
+  padding: 5px 12px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  transition: filter 180ms ease, transform 120ms ease;
+}
+.biji-refine-go:hover  { filter: brightness(1.05); transform: translateX(2px); }
+.biji-refine-go:active { transform: translateX(0) scale(0.98); }
+.biji-refine-clear {
+  flex: 0 0 auto;
+  background: transparent;
+  color: var(--text-faint);
+  border: none;
+  padding: 5px 8px;
+  font-size: 11px;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  opacity: 0.7;
+  transition: opacity 180ms ease, color 180ms ease;
+}
+.biji-refine-clear:hover { opacity: 1; color: var(--text-normal); }
+.biji-refine-go:disabled {
+  opacity: 0.5;
+  cursor: progress;
+  filter: grayscale(0.4);
+}
+
+/* ─── AI 理解(thought)──────────────────────────────────────────
+   AI 的推理过程 —— 视觉中心,纯文字,顶部细分隔线 + 大留白
+   不加背景框,不加色,让"语言本身"成为主角
+*/
+.biji-refine-thought {
+  display: block;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(212, 165, 116, 0.18);
+  font-size: 11px;
+  line-height: 1.65;
+  color: var(--text-muted);
+  letter-spacing: 0.015em;
+  min-width: 0;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  /* 进场动效:fade + 上滑,慢一拍 */
+  animation: bijiThoughtIn 700ms cubic-bezier(0.22, 1, 0.36, 1) 80ms backwards;
+}
+.biji-refine-thought-prefix {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.34em;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  opacity: 0.72;
+}
+.biji-refine-thought-text {
+  display: block;
+  color: var(--text-normal);
+  font-style: italic;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+@keyframes bijiThoughtIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── 新 QUERY ──────────────────────────────────────────────────
+   AI 输出的"机器产物" —— 用 quote 块视觉,跟 thought(自然语言推理)做区分
+   极淡背景 + 左竖线 + 法文引号 «  » 包裹 → 一眼能看出"这是 AI 改写的检索串"
+*/
+.biji-refine-newquery {
+  display: block;
+  margin-top: 12px;
+  padding: 9px 12px 9px 11px;
+  background: rgba(212, 165, 116, 0.06);
+  border-left: 1.5px solid rgba(212, 165, 116, 0.55);
+  border-radius: 0 3px 3px 0;
+  font-size: 10.5px;
+  line-height: 1.6;
+  min-width: 0;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  animation: bijiThoughtIn 700ms cubic-bezier(0.22, 1, 0.36, 1) 220ms backwards;
+}
+.biji-refine-newquery-prefix {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.34em;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  opacity: 0.72;
+}
+.biji-refine-newquery-text {
+  display: block;
+  color: var(--color-yellow, #d4a574);
+  font-family: var(--font-monospace, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 10.5px;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+.biji-refine-newquery-text::before {
+  content: "« ";
+  opacity: 0.5;
+  font-weight: 400;
+}
+.biji-refine-newquery-text::after {
+  content: " »";
+  opacity: 0.5;
+  font-weight: 400;
+}
+
+/* 锚点矛盾警告 */
+.biji-refine-conflict {
+  display: block;
+  margin-top: 12px;
+  padding: 6px 10px;
+  background: rgba(214, 84, 84, 0.08);
+  border-left: 2px solid var(--text-error, #d65454);
+  font-size: 10.5px;
+  line-height: 1.55;
+  color: var(--text-error, #d65454);
+  border-radius: 3px;
+  word-break: break-word;
+  animation: bijiThoughtIn 700ms cubic-bezier(0.22, 1, 0.36, 1) 300ms backwards;
+}
+
+/* ─── boost / exclude 概念标签 ─────────────────────────────────
+   核心改动:去掉填充色,只保留 1px 边框 —— 视觉权重大幅降低,
+   主信息(thought / newquery)上位。
+   stagger 错位淡入,refine 完跟"洒下来"一样,演化感拉满。
+*/
+.biji-refine-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px dashed rgba(212, 165, 116, 0.15);
+}
+.biji-refine-tag {
+  display: inline-block;
+  padding: 1px 9px;
+  border-radius: 11px;
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  font-family: var(--font-monospace, ui-monospace, SFMono-Regular, Menlo, monospace);
+  white-space: nowrap;
+  flex-shrink: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background: transparent;
+  opacity: 0.78;
+  transition: opacity 180ms ease, transform 180ms ease, background 180ms ease;
+  /* stagger 进场,nth-child 给每个标签错开 50ms */
+  animation: bijiTagIn 450ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+.biji-refine-tag:hover {
+  opacity: 1;
+  transform: translateY(-1px);
+}
+.biji-refine-tag-boost {
+  color: var(--color-green, #7aa874);
+  border: 1px solid rgba(122, 168, 116, 0.42);
+}
+.biji-refine-tag-boost:hover  { background: rgba(122, 168, 116, 0.10); }
+.biji-refine-tag-exclude {
+  color: var(--color-orange, #e0826b);
+  border: 1px solid rgba(224, 130, 107, 0.42);
+  text-decoration: line-through;
+  text-decoration-color: rgba(224, 130, 107, 0.55);
+  text-decoration-thickness: 1px;
+}
+.biji-refine-tag-exclude:hover { background: rgba(224, 130, 107, 0.08); }
+
+/* stagger 时序:每个 tag 错开 60ms,最多到 8 个之后用同一个 delay */
+.biji-refine-tags .biji-refine-tag:nth-child(1) { animation-delay: 380ms; }
+.biji-refine-tags .biji-refine-tag:nth-child(2) { animation-delay: 440ms; }
+.biji-refine-tags .biji-refine-tag:nth-child(3) { animation-delay: 500ms; }
+.biji-refine-tags .biji-refine-tag:nth-child(4) { animation-delay: 560ms; }
+.biji-refine-tags .biji-refine-tag:nth-child(5) { animation-delay: 620ms; }
+.biji-refine-tags .biji-refine-tag:nth-child(6) { animation-delay: 680ms; }
+.biji-refine-tags .biji-refine-tag:nth-child(7) { animation-delay: 740ms; }
+.biji-refine-tags .biji-refine-tag:nth-child(n+8) { animation-delay: 800ms; }
+
+@keyframes bijiTagIn {
+  from { opacity: 0; transform: translateY(4px) scale(0.96); }
+  to   { opacity: 0.78; transform: translateY(0)  scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .biji-refine-thought,
+  .biji-refine-newquery,
+  .biji-refine-conflict,
+  .biji-refine-tag { animation: none !important; }
+}
