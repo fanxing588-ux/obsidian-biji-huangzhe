@@ -1,7 +1,7 @@
 {
   "id": "biji-huangzhe",
   "name": "笔记拾荒者",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "minAppVersion": "1.5.0",
   "description": "写作时从 vault 旧笔记里自动召回相关、反向、案例、金句片段,以拾荒卡片浮现",
   "author": "刘洋",

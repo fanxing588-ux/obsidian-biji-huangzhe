@@ -1,6 +1,6 @@
 {
   "name": "biji-huangzhe",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "笔记拾荒者 — Obsidian plugin",
   "main": "main.js",
   "scripts": {

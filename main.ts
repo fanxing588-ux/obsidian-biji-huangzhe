@@ -45,6 +45,9 @@ interface BijiSettings {
   // 搜索 reranker(dashscope gte-rerank-v2 等)—— hybrid 召回 top-N 后用 rerank 模型重排
   useRerank: boolean;
   rerankModel: string;
+  // 个性化:用"有用/没用"反馈算出偏好向量(Rocchio centroid),给主题相似的候选加分。
+  // 0 = 关闭(纯检索) / 1 = 适中(推荐) / 2 = 激进(强烈跟着你的标记走)
+  personalizationStrength: 0 | 1 | 2;
 }
 
 const DEFAULT_SETTINGS: BijiSettings = {
@@ -73,6 +76,7 @@ const DEFAULT_SETTINGS: BijiSettings = {
   autoTrigger: false, // 默认关闭自动召回 —— 只走显式触发(搜索框/右键/命令),不占用户注意力
   useRerank: true, // 搜索时用 rerank 模型重排,精度跳一档(每次约 ¥0.005)
   rerankModel: "gte-rerank-v2",
+  personalizationStrength: 1, // 默认适中:有用/没用反馈生成偏好向量,给相似主题加分(冷启动时无效)
 };
 
 const VIEW_TYPE_BIJI = "biji-huangzhe-view";
@@ -1245,6 +1249,9 @@ class Matcher {
     const chunks = this.plugin.indexer.getAllChunks(excludePath);
     const now = Date.now();
     const dedupMs = s.dedupDays * 24 * 3600 * 1000;
+    // 个性化:取用户偏好向量(冷启动 / 关闭时为 null,后续 rankSim 加分项跳过)
+    const prefVec = this.plugin.getPreferenceVector();
+    const prefWeight = s.personalizationStrength * 0.08; // 1 → 0.08;2 → 0.16
     const scored: { ch: Chunk; sim: number; rankSim: number }[] = [];
     for (const ch of chunks) {
       const emb = this.plugin.indexer.embeddings.get(ch.id);
@@ -1263,11 +1270,17 @@ class Matcher {
       const sim = cosine(queryEmb, emb);
       if (sim < s.minSim) continue;
 
-      // 反打扰:feedback 调权(用于排序,sim 字段保留原始相似度给卡片展示)
+      // 排序权重(sim 字段保留原始相似度给卡片展示):
+      // (a) per-chunk feedback:精确命中过的卡片直接加/减分
+      // (b) 偏好向量:跟"过去标过有用的卡片主题相似"的也加分(关键的"个性化"飞轮)
       let rankSim = sim;
       if (fb) {
-        rankSim += 0.02 * fb.useful;
-        rankSim -= 0.05 * fb.useless;
+        rankSim += 0.05 * fb.useful;   // 之前是 0.02 太弱了,翻 2.5 倍
+        rankSim -= 0.10 * fb.useless;  // 之前是 0.05,翻 2 倍
+      }
+      if (prefVec && prefWeight > 0) {
+        const personal = cosine(prefVec, emb); // -1..+1
+        rankSim += prefWeight * personal;
       }
       scored.push({ ch, sim, rankSim });
     }
@@ -2023,14 +2036,30 @@ class BijiSettingTab extends PluginSettingTab {
         }));
 
     new Setting(containerEl)
+      .setName("个性化强度(偏好向量)")
+      .setDesc('用你标过"有用/没用"的卡片算一个偏好向量,给"主题相似于你过去喜欢的"候选加分(带 30 天半衰期)。0=关闭(纯检索);1=适中(推荐);2=激进(强烈跟着你的标记走)。冷启动 0 反馈时无效。')
+      .addDropdown((d) => d
+        .addOption("0", "0 · 关闭")
+        .addOption("1", "1 · 适中(推荐)")
+        .addOption("2", "2 · 激进")
+        .setValue(String(this.plugin.settings.personalizationStrength))
+        .onChange(async (v) => {
+          const n = parseInt(v, 10) as 0 | 1 | 2;
+          this.plugin.settings.personalizationStrength = (n === 0 || n === 1 || n === 2) ? n : 1;
+          this.plugin.invalidatePrefVec();
+          await this.plugin.saveSettings();
+        }));
+
+    new Setting(containerEl)
       .setName("清空展示历史 / 反馈")
-      .setDesc("清掉 N 天去重记录和有用/没用反馈。卡片上的「别再提醒」不受影响。")
+      .setDesc("清掉 N 天去重记录和有用/没用反馈(包括偏好向量)。卡片上的「别再提醒」不受影响。")
       .addButton((b) => b
         .setButtonText("清空")
         .setWarning()
         .onClick(async () => {
           this.plugin.shown = {};
           this.plugin.feedback = {};
+          this.plugin.invalidatePrefVec();
           await this.plugin.persist();
           new Notice("已清空展示历史和反馈");
           this.display();
@@ -2237,6 +2266,64 @@ export default class BijiHuangzhePlugin extends Plugin {
 
   // Relevance feedback:每轮最多用最近钉的 N 个锚点,防过拟合 + 防 prompt 膨胀
   static readonly REFINE_MAX_ANCHORS = 6;
+
+  // 偏好向量缓存(Rocchio centroid of useful − 0.5 × useless,带时间衰减):
+  // 用户长期"有用/没用"反馈聚合成一个向量,用于给"主题相似于他过去喜欢的"候选加分。
+  // 维度跟着 settings.dimensions:换 embedding 模型后会自动失效重算。
+  private prefVecCache: { vec: number[]; dim: number; computedAt: number } | null = null;
+  private static readonly PREF_VEC_HALFLIFE_DAYS = 30; // 30 天前的反馈权重衰减到一半
+  invalidatePrefVec() { this.prefVecCache = null; }
+
+  // 算 / 取偏好向量。冷启动(0 反馈)或个性化关掉时返回 null。
+  // 缓存有效期:5 分钟(防止每次 match 都重算 N×D 的求和)
+  getPreferenceVector(): number[] | null {
+    if (this.settings.personalizationStrength <= 0) return null;
+    const targetDim = this.settings.dimensions;
+    const now = Date.now();
+    if (this.prefVecCache &&
+        this.prefVecCache.dim === targetDim &&
+        now - this.prefVecCache.computedAt < 5 * 60 * 1000) {
+      return this.prefVecCache.vec;
+    }
+
+    const halfLifeMs = BijiHuangzhePlugin.PREF_VEC_HALFLIFE_DAYS * 24 * 3600 * 1000;
+    let posSum: number[] | null = null;
+    let posWeight = 0;
+    let negSum: number[] | null = null;
+    let negWeight = 0;
+    for (const [chunkId, fb] of Object.entries(this.feedback)) {
+      if (!fb || (fb.useful === 0 && fb.useless === 0)) continue;
+      const emb = this.indexer.embeddings.get(chunkId);
+      if (!emb || emb.length !== targetDim) continue;
+      // 时间衰减:lastAt 越久远权重越低,30 天前 = 0.5,60 天前 ≈ 0.25
+      const ageMs = Math.max(0, now - fb.lastAt);
+      const decay = Math.pow(0.5, ageMs / halfLifeMs);
+      const u = fb.useful * decay;
+      const n = fb.useless * decay;
+      if (u > 0) {
+        if (!posSum) posSum = new Array(targetDim).fill(0);
+        for (let i = 0; i < targetDim; i++) posSum[i] += u * emb[i];
+        posWeight += u;
+      }
+      if (n > 0) {
+        if (!negSum) negSum = new Array(targetDim).fill(0);
+        for (let i = 0; i < targetDim; i++) negSum[i] += n * emb[i];
+        negWeight += n;
+      }
+    }
+    if (!posSum && !negSum) { this.prefVecCache = null; return null; }
+
+    const vec = new Array(targetDim).fill(0);
+    if (posSum && posWeight > 0) {
+      for (let i = 0; i < targetDim; i++) vec[i] += posSum[i] / posWeight;
+    }
+    if (negSum && negWeight > 0) {
+      // 反向贡献只取 0.5 权重(没用是较弱信号)
+      for (let i = 0; i < targetDim; i++) vec[i] -= 0.5 * negSum[i] / negWeight;
+    }
+    this.prefVecCache = { vec, dim: targetDim, computedAt: now };
+    return vec;
+  }
 
   async onload() {
     // 1. 加载持久数据
@@ -2960,6 +3047,7 @@ export default class BijiHuangzhePlugin extends Plugin {
     else fb.useless++;
     fb.lastAt = Date.now();
     this.feedback[chunkId] = fb;
+    this.invalidatePrefVec(); // 让下次召回重算偏好向量
     this.persist();
 
     if (!useful && fb.useless >= 2) {
