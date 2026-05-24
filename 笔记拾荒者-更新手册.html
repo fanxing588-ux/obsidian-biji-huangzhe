@@ -2,179 +2,153 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<title>笔记拾荒者 · 更新手册（小白版）</title>
+<title>笔记拾荒者 · 安装与更新</title>
 <style>
-  @page { size: A4; margin: 20mm 18mm; }
-  * { box-sizing: border-box; }
+  @page { size: A4; margin: 18mm 16mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body {
-    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
     color: #1a1a1d;
-    font-size: 11pt;
-    line-height: 1.75;
-    margin: 0;
-    padding: 0;
-    -webkit-font-smoothing: antialiased;
+    font-size: 13pt;
+    line-height: 1.7;
   }
   h1 {
-    font-size: 22pt;
+    font-size: 26pt;
     font-weight: 600;
-    margin: 0 0 4px;
-    letter-spacing: -0.01em;
+    margin-bottom: 4px;
   }
   .subtitle {
-    color: #6b6b70;
-    font-size: 11pt;
-    margin-bottom: 24px;
-    padding-bottom: 14px;
-    border-bottom: 1px solid #e5e5e7;
+    color: #888;
+    font-size: 12pt;
+    padding-bottom: 18px;
+    border-bottom: 2px solid #1a1a1d;
+    margin-bottom: 28px;
   }
   h2 {
+    font-size: 18pt;
+    font-weight: 600;
+    margin-top: 28px;
+    margin-bottom: 14px;
+  }
+  h2 .tag {
+    font-size: 11pt;
+    color: #888;
+    font-weight: 400;
+    margin-left: 8px;
+  }
+  .step {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    margin-bottom: 14px;
     font-size: 14pt;
+  }
+  .num {
+    flex: 0 0 32px;
+    height: 32px;
+    background: #d4a574;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     font-weight: 600;
-    margin: 28px 0 10px;
-    color: #1a1a1d;
+    font-size: 13pt;
   }
-  h3 {
-    font-size: 12pt;
-    font-weight: 600;
-    margin: 18px 0 6px;
-    color: #2a2a2f;
-  }
-  p { margin: 6px 0 10px; }
-  ol, ul { margin: 6px 0 12px; padding-left: 22px; }
-  li { margin-bottom: 5px; }
-  .hero {
-    background: #faf6f0;
-    border-left: 3px solid #d4a574;
-    padding: 14px 18px;
-    border-radius: 4px;
-    margin: 16px 0 22px;
-    font-size: 11.5pt;
-  }
-  .hero b { color: #a07338; }
-  code, .kbd {
-    font-family: "SF Mono", "Consolas", "Microsoft YaHei Mono", monospace;
-    background: #f4f4f6;
-    padding: 2px 6px;
-    border-radius: 3px;
-    font-size: 10pt;
-    color: #d4456b;
-  }
-  .step-box {
-    background: #fafafb;
-    border: 1px solid #ececef;
-    border-radius: 6px;
-    padding: 14px 20px;
-    margin: 10px 0 16px;
-  }
-  .step-box.warn {
-    background: #fff8f3;
-    border-color: #f3d8c2;
-  }
-  .step-box.warn b { color: #b85a1e; }
-  .step-box.info {
-    background: #f3f7fc;
-    border-color: #cfdcef;
-  }
-  .step-box.info b { color: #3a5d8f; }
-  .footer {
-    margin-top: 32px;
-    padding-top: 14px;
-    border-top: 1px solid #e5e5e7;
-    color: #8a8a8f;
-    font-size: 9.5pt;
-  }
-  .footer a { color: #6b8fc5; text-decoration: none; }
-  .badge {
-    display: inline-block;
+  .step-body { flex: 1; padding-top: 3px; }
+  code {
+    font-family: Consolas, "Microsoft YaHei Mono", monospace;
+    background: #f0f0f3;
     padding: 2px 8px;
-    background: #eaf4ea;
-    color: #4a7a46;
-    border-radius: 10px;
-    font-size: 9pt;
-    font-weight: 500;
+    border-radius: 4px;
+    font-size: 12pt;
+    color: #c0356a;
   }
-  .url {
-    word-break: break-all;
-    font-family: "SF Mono", "Consolas", monospace;
-    font-size: 9.5pt;
-    color: #3a5d8f;
+  .done {
+    background: #e8f4e0;
+    color: #4a7a3e;
+    padding: 12px 18px;
+    border-radius: 6px;
+    font-size: 14pt;
+    font-weight: 500;
+    margin-top: 16px;
+    text-align: center;
+  }
+  .update-box {
+    background: #faf6f0;
+    border-left: 4px solid #d4a574;
+    padding: 16px 20px;
+    border-radius: 4px;
+    font-size: 14pt;
+  }
+  .update-box .big {
+    font-size: 16pt;
+    font-weight: 500;
+    margin-bottom: 6px;
+  }
+  .update-box .small {
+    color: #777;
+    font-size: 11pt;
+    margin-top: 8px;
+  }
+  .help li {
+    list-style: none;
+    padding: 8px 0;
+    border-bottom: 1px dashed #e0e0e3;
+    font-size: 12pt;
+  }
+  .help li:last-child { border-bottom: none; }
+  .help b { color: #c0356a; }
+  .foot {
+    margin-top: 36px;
+    padding-top: 12px;
+    border-top: 1px solid #e0e0e3;
+    color: #999;
+    font-size: 10pt;
+    text-align: center;
   }
 </style>
 </head>
 <body>
 
-<h1>笔记拾荒者 · 更新手册</h1>
-<div class="subtitle">小白版 · 三分钟看完，永远不用愁怎么更新</div>
+<h1>笔记拾荒者</h1>
+<div class="subtitle">安装 + 以后怎么更新</div>
 
-<div class="hero">
-  <b>一句话总结：</b>装好之后，更新这件事基本不用你操心 —— BRAT 会自动提示你，你点一下"Update"就行。
+<h2>第一次装 <span class="tag">大概 3 分钟</span></h2>
+
+<div class="step"><div class="num">1</div><div class="step-body">打开 Obsidian，左下角点 ⚙️ <b>设置</b></div></div>
+
+<div class="step"><div class="num">2</div><div class="step-body">点 <b>第三方插件</b> → 关闭"安全模式"</div></div>
+
+<div class="step"><div class="num">3</div><div class="step-body">点 <b>浏览</b> → 搜 <code>BRAT</code> → 安装 → 启用</div></div>
+
+<div class="step"><div class="num">4</div><div class="step-body">左边菜单往下拖，找到 <b>BRAT</b> 点开 → <b>Add Beta plugin</b></div></div>
+
+<div class="step"><div class="num">5</div><div class="step-body">粘这一行，点 Add Plugin：<br><code>fanxing588-ux/obsidian-biji-huangzhe</code></div></div>
+
+<div class="step"><div class="num">6</div><div class="step-body">回到 <b>第三方插件</b>，打开「笔记拾荒者」开关</div></div>
+
+<div class="done">✓ 完成，可以用了</div>
+
+<h2>以后更新 <span class="tag">不用操心</span></h2>
+
+<div class="update-box">
+  <div class="big">右下角弹通知 → 点 <code>Update</code></div>
+  就这样。BRAT 每小时自动检查一次。
+  <div class="small">实在等不及：设置 → BRAT → <code>Check for updates to all beta plugins</code></div>
 </div>
 
-<h2>方式一：等通知（最省事）</h2>
-<p>BRAT 默认<b>每小时检查一次</b>更新。当作者发布新版本，只要你的 Obsidian 是开着的，右下角会弹出一个通知，告诉你"笔记拾荒者 有新版本可用"。</p>
-<div class="step-box">
-  <b>你只需要做一件事：</b>点通知里的 <code>Update</code> 按钮。装好后 BRAT 会再弹一个提示，告诉你要不要立即重启 Obsidian 来生效 —— 选 <code>Yes</code> 就行。
-</div>
+<h2>出问题了 <span class="tag">三种情况</span></h2>
 
-<h2>方式二：手动检查（不想等就用这个）</h2>
-<p>如果你听说了新版发布，但 BRAT 还没自动检测到，手动来一下：</p>
-<ol>
-  <li>左下角齿轮图标打开 <b>设置</b></li>
-  <li>左侧菜单往下找 <b>BRAT</b>，点进去</li>
-  <li>找到 <code>Check for updates to all beta plugins</code> 按钮，点它</li>
-  <li>BRAT 会立刻检查所有 beta 插件。如果"笔记拾荒者"有新版，会自动装好</li>
-  <li>右上角会弹"Plugin updated"提示。<b>按 <span class="kbd">Ctrl + R</span> 重载 Obsidian</b> 让新版生效</li>
-</ol>
+<ul class="help">
+  <li><b>装完没反应：</b>按 <code>Ctrl + R</code> 重新加载 Obsidian</li>
+  <li><b>找不到 BRAT：</b>左边菜单可以拖动，往下找"社区插件"分类</li>
+  <li><b>报 Network error：</b>你网络访问不到 GitHub，挂代理或换网试试</li>
+</ul>
 
-<h2>方式三：实在不行，手动覆盖</h2>
-<p>很罕见的情况：你的网络访问不到 GitHub（公司内网 / 国内某些地区） —— BRAT 会反复报 <code>Network error</code>。这时候只能手动来：</p>
-<ol>
-  <li>用能访问 GitHub 的网络（或代理）打开：<br>
-    <span class="url">https://github.com/fanxing588-ux/obsidian-biji-huangzhe/releases</span>
-  </li>
-  <li>找到最新的 Release（页面最上面那个），下载 <b>三个文件</b>：
-    <ul>
-      <li><code>main.js</code></li>
-      <li><code>manifest.json</code></li>
-      <li><code>styles.css</code></li>
-    </ul>
-  </li>
-  <li>找到你的 vault 文件夹，进入：<br>
-    <code>你的Vault/.obsidian/plugins/biji-huangzhe/</code><br>
-    （<code>.obsidian</code> 是隐藏文件夹，看不到的话开启"显示隐藏文件"）
-  </li>
-  <li>把刚下的三个文件<b>覆盖</b>这个文件夹里的同名文件</li>
-  <li>回到 Obsidian，按 <span class="kbd">Ctrl + R</span> 重载</li>
-</ol>
-
-<h2>检查当前版本</h2>
-<p>想知道自己现在装的是哪个版本？</p>
-<div class="step-box info">
-  设置 → <b>第三方插件</b> → 找到「笔记拾荒者」→ 看插件名下面写的 <code>Version: 0.x.x</code>
-</div>
-<p>然后跟 GitHub 上的 <a class="url">Releases</a> 页面最新版本对比一下，就知道要不要更新。</p>
-
-<h2>常见问题</h2>
-
-<h3>更新完之后插件不工作 / 出错了</h3>
-<ol>
-  <li>按 <span class="kbd">Ctrl + R</span> 重载 Obsidian（最常见的解决办法）</li>
-  <li>还不行：设置 → 第三方插件 → 把「笔记拾荒者」的开关<b>关掉再打开</b></li>
-  <li>还不行：去 GitHub Issues 反馈，附上插件版本号 + 报错截图</li>
-</ol>
-
-<h3>BRAT 提示 "Could not find a valid release"</h3>
-<p>说明 BRAT 在 GitHub 仓库里没找到符合规范的 Release。一般是临时网络问题，等几分钟再点 <code>Check for updates</code> 即可。</p>
-
-<h3>不想自动更新，想自己控制节奏</h3>
-<p>BRAT 设置 → 关闭 <code>Auto-update plugins at startup</code>。之后只有你手动点 <code>Check for updates</code> 才会检查。</p>
-
-<div class="footer">
-  <b>笔记拾荒者</b> · 写作时从 vault 旧笔记里召回相关片段的 Obsidian 插件<br>
-  仓库：<span class="url">https://github.com/fanxing588-ux/obsidian-biji-huangzhe</span><br>
-  问题反馈：<span class="url">https://github.com/fanxing588-ux/obsidian-biji-huangzhe/issues</span><br>
-  <span class="badge">手册版本 v1 · 2026-05</span>
+<div class="foot">
+  GitHub: github.com/fanxing588-ux/obsidian-biji-huangzhe<br>
+  Bug 反馈走 Issues
 </div>
 
 </body>
