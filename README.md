@@ -23,9 +23,8 @@ BRAT(Beta Reviewer Auto-update Tool)是 Obsidian 生态里专门用来管理"还
 1. 在 Obsidian 里:**设置 → 第三方插件 → 浏览**,搜 `BRAT`,装上并启用
 2. 打开 BRAT 设置 → **Add Beta plugin** → 填仓库 URL:
    ```
-   <仓库路径>/obsidian-biji-huangzhe
+   fanxing588-ux/obsidian-biji-huangzhe
    ```
-   (具体的仓库路径见本 repo 顶部地址栏,形如 `用户名/obsidian-biji-huangzhe`)
 3. BRAT 会自动从最新 Release 拉取 `main.js / manifest.json / styles.css`,装到 `.obsidian/plugins/biji-huangzhe/`。然后在**设置 → 第三方插件**里启用「笔记拾荒者」即可
 
 **更新**:之后我每次发新版,BRAT 会自动检测(或你在 BRAT 设置里点 "Check for updates" 立即检查),提示你一键更新。不需要再手动下载/覆盖文件。

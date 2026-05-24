@@ -114,7 +114,8 @@ run("gh", [
   "release", "create", version,
   "main.js", "manifest.json", "styles.css",
   "--title", `v${version}`,
-  "--notes", `自动发版 v${version}\n\n通过 BRAT 安装的用户会自动收到更新。`,
+  // 注意:--notes 不能有真换行,否则 Windows 下 shell:true 会把命令切断。
+  "--notes", `自动发版 v${version}。通过 BRAT 安装的用户会自动收到更新。`,
 ]);
 
 console.log(`\n✓ 发版完成:v${version}`);
